@@ -19,8 +19,6 @@ class Interpreter(object):
         self.pos = 0
         self.current_token = None
         self.current_char = self.text[self.pos]
-        self.operands = []
-        self.input_operators = []
 
     def error(self):
         raise Exception('Error parsing input')
@@ -39,7 +37,7 @@ class Interpreter(object):
             self.advance()
             return token
 
-        #Recurse the function until whitespace not found
+        #Recurse the function until whitespace is not found
         if self.current_char.isspace():
             self.advance()
             return self.get_next_token()
@@ -59,6 +57,11 @@ class Interpreter(object):
         else:
             self.current_char = self.text[self.pos]
 
+    def term(self):
+        token = self.current_token
+        self.eat(INTEGER)
+        return token.value
+
     def integer(self):
         result = ''
         while self.current_char is not None and self.current_char.isdigit():
@@ -69,35 +72,22 @@ class Interpreter(object):
     def expr(self):
         self.current_token = self.get_next_token()
 
-        while self.current_token.type != EOF:
-            if self.current_token.type == INTEGER:
-                self.operands.append(self.current_token.value)
-                self.eat(INTEGER)
-            elif self.current_token.type == OPERATOR:
-                self.input_operators.append(self.current_token.value)
+        result = self.term()
+        while self.current_token.type == OPERATOR:
+            if self.current_token.value == '+':
                 self.eat(OPERATOR)
-
-        if len(self.operands) - len(self.input_operators) != 1:
-            self.error()
-
-        while len(self.operands) > 1:
-            op1 = self.operands.pop()
-            opr = self.input_operators.pop()
-            op2 = self.operands.pop()
-
-            result = None
-            if opr == '+':
-                result = op2 + op1
-            elif opr == '-':
-                result = op2 - op1
-            elif opr == '*':
-                result = op2 * op1
-            elif opr == '/':
-                result = op2 / op1
-
-            self.operands.append(result)
+                result = result + self.term()
+            elif self.current_token.value == '-':
+                self.eat(OPERATOR)
+                result = result - self.term()
+            elif self.current_token.value == '*':
+                self.eat(OPERATOR)
+                result = result * self.term()
+            elif self.current_token.value == '/':
+                self.eat(OPERATOR)
+                result = result / self.term()
         
-        return self.operands[0]
+        return result
 
 
 def main():
